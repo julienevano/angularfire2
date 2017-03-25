@@ -2,7 +2,7 @@
 
 > AngularFire2 synchronizes data as objects using the `FirebaseObjectObservable`. 
 The `FirebaseObjectObservable` is not created by itself, but through the `AngularFire.database` service. 
-The guide below demonstrates how to retreive, save, and remove data as objects.
+The guide below demonstrates how to retrieve, save, and remove data as objects.
 
 ## Injecting the AngularFire service
 
@@ -10,41 +10,41 @@ The guide below demonstrates how to retreive, save, and remove data as objects.
 
 AngularFire is an injectable service, which is injected through the constructor of your Angular component or `@Injectable()` service.
 
+If you've followed the earlier step "Installation and Setup"  your `/src/app/app.component.ts` should look like below. 
+
 ```ts
 import { Component } from '@angular/core';
-import { AngularFire } from 'angularfire2';
+import { AngularFire, FirebaseListObservable } from 'angularfire2';
 
 @Component({
-  moduleId: module.id,
-  selector: 'app',
-  template: 'app.component.html',
+  selector: 'app-root',
+  templateUrl: 'app.component.html',
   styleUrls: ['app.component.css']
 })
 export class AppComponent {
+  items: FirebaseListObservable<any[]>;
   constructor(af: AngularFire) {
-    
+    this.items = af.database.list('items');
   }
 }
 ```
 
+In this section, we're going to modify the `/src/app/app.component.ts`  to retreive data as object.
+
 ## Create an object binding
 
-Data is retreived through the `af.database` service.
+Data is retrieved through the `af.database` service.
 
-There are three ways to create an object binding:
+There are two ways to create an object binding:
 
 1. Relative URL
-2. Absolute URL
-3. Reference or Query
+1. Absolute URL
 
 ```ts
 // relative URL, uses the database url provided in bootstrap
 const relative = af.database.object('/item');
 // absolute URL
 const absolute = af.database.object('https://<your-app>.firebaseio.com/item');
-// database reference
-const dbRef = new Firebase('https://<your-app>.firebaseio.com/item');
-const relative = af.database.object(dbRef);
 ```
 
 ### Retrieve data
@@ -52,18 +52,21 @@ const relative = af.database.object(dbRef);
 To get the object in realtime, create an object binding as a property of your component or service.
 Then in your template, you can use the `async` pipe to unwrap the binding.
 
+Replace the FirebaseListObservable to FirebaseObjectObservable in your `/src/app/app.component.ts` as below.
+Also notice the templateUrl changed to inline template below:
+
 ```ts
-import {Component} from 'angular2/core';
+import {Component} from '@angular/core';
 import {AngularFire, FirebaseObjectObservable} from 'angularfire2';
 
 @Component({
-  selector: 'app',
+  selector: 'app-root',
   template: `
-  <h1>{{ item.name | async }}</h1>
+  <h1>{{ (item | async)?.name }}</h1>
   `,
 })
 export class AppComponent {
-  item: Observable<any>;
+  item: FirebaseObjectObservable<any>;
   constructor(af: AngularFire) {
     this.item = af.database.object('/item');
   }
@@ -116,7 +119,7 @@ itemObservable.update({ age: newAge });
 ```
 
 **Only objects are allowed for updates, not primitives**. This is because
-using an update with a primitive is the exact same as doing a `.set()` with a primtivie.
+using an update with a primitive is the exact same as doing a `.set()` with a primitive.
 
 ### Deleting data
 Use the `remove()` method to remove data at the object's location.
@@ -133,8 +136,7 @@ import { Component } from '@angular/core';
 import { AngularFire, FirebaseObjectObservable } from 'angularfire2';
 
 @Component({
-  moduleId: module.id,
-  selector: 'app',
+  selector: 'app-root',
   template: `
   <h1>{{ item | async | json }}</h1>
   <input type="text" #newname placeholder="Name" />
@@ -145,7 +147,7 @@ import { AngularFire, FirebaseObjectObservable } from 'angularfire2';
   <button (click)="delete()">Delete</button>
   `,
 })
-export class RcTestAppComponent {
+export class AppComponent {
   item: FirebaseObjectObservable<any>;
   constructor(af: AngularFire) {
     this.item = af.database.object('/item');
@@ -163,7 +165,7 @@ export class RcTestAppComponent {
 ```
 
 ## Meta-fields on the object
-Data retreived from the object binding contains special properties retreived from the unwrapped Firebase DataSnapshot.
+Data retrieved from the object binding contains special properties retrieved from the unwrapped Firebase DataSnapshot.
 
 | property |                    | 
 | ---------|--------------------| 
@@ -171,16 +173,19 @@ Data retreived from the object binding contains special properties retreived fro
 | $value   | If the data for this child node is a primitive (number, string, or boolean), then the record itself will still be an object. The primitive value will be stored under `$value` and can be changed and saved like any other field.|
 
 
-## Retreiving the snapshot
+## Retrieving the snapshot
 AngularFire2 unwraps the Firebase DataSnapshot by default, but you can get the data as the original snapshot by specifying the `preserveSnapshot` option. 
 
 ```ts
 this.item = af.database.object('/item', { preserveSnapshot: true });
-this.item.subscribe(snapshot => console.log(snapshot.key()));
+this.item.subscribe(snapshot => {
+  console.log(snapshot.key)
+  console.log(snapshot.val())
+});
 ```
 
 ## Querying?
-The `FirebaseObjectObservable` synchronizes objects from the realtime database. There is no querying available for objects because 
-objects are simply JSON, and JSON order is specified by the browser.
+
+Because `FirebaseObjectObservable` synchronizes objects from the realtime database, sorting will have no effect for queries that are not also limited by a range. For example, when paginating you would provide a query with a sort and filter. Both the sort operation and the filter operation affect which subset of the data is returned by the query; however, because the resulting object is simply json, the sort order will not be preseved locally. Hence, for operations that require sorting, you are probably looking for a [list](3-retrieving-data-as-lists.md)
 
 ###[Next Step: Retrieving data as lists](3-retrieving-data-as-lists.md)
